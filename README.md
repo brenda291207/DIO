@@ -1,168 +1,229 @@
-# DIO
-Calculadora de Emissão de Gás Carbônico
-/* app.js
-   Integra UI, RoutesData e Calculator para funcionamento básico.
-*/
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>🍃 Calculadora de Emissão de CO₂</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="calc">
+
+  <header class="calc__header">
+    <div class="calc__header-inner">
+      <h1 class="calc__title">🍃 Calculadora de Emissão de CO₂</h1>
+      <p class="calc__subtitle">Calcule as emissões de CO₂ estimadas para um trajeto e compare opções de transporte.</p>
+    </div>
+  </header>
+
+  <main class="calc__main" id="main-content">
+    <form id="calculator-form" class="calc__form" novalidate>
+      <fieldset class="calc__fieldset calc__fieldset--route">
+        <legend class="calc__legend">Trajeto</legend>
+
+        <div class="calc__form-row">
+          <label class="calc__label" for="origin">Origem</label>
+          <input
+            id="origin"
+            name="origin"
+            class="calc__input calc__input--text"
+            type="text"
+            list="cicles-list"
+            placeholder="Digite a cidade ou local de origem"
+            aria-required="true"
+            autocomplete="off"
+          />
+          <datalist id="cicles-list">
+            <!-- Populado via JavaScript -->
+          </datalist>
+        </div>
+
+        <div class="calc__form-row">
+          <label class="calc__label" for="destination">Destino</label>
+          <input
+            id="destination"
+            name="destination"
+            class="calc__input calc__input--text"
+            type="text"
+            list="cicles-list"
+            placeholder="Digite a cidade ou local de destino"
+            aria-required="true"
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="calc__form-row">
+          <label class="calc__label" for="distance">Distância (km)</label>
+          <input
+            id="distance"
+            name="distance"
+            class="calc__input calc__input--number"
+            type="number"
+            readonly
+            aria-describedby="distance-help"
+            min="0"
+            step="0.1"
+          />
+          <p id="distance-help" class="calc__help">A distância será preenchida automaticamente</p>
+        </div>
+
+        <div class="calc__form-row calc__form-row--manual">
+          <input
+            id="manual-distance"
+            name="manual-distance"
+            class="calc__checkbox"
+            type="checkbox"
+            aria-controls="distance"
+          />
+          <label class="calc__label calc__label--checkbox" for="manual-distance">Inserir manualmente</label>
+        </div>
+      </fieldset>
+
+      <fieldset class="calc__fieldset calc__fieldset--transport">
+        <legend class="calc__legend">Modo de Transporte</legend>
+
+        <div class="calc__transport-grid" role="radiogroup" aria-label="Modo de transporte">
+          <label class="calc__transport-item" for="transport-bicycle">
+            <input class="calc__transport-input" id="transport-bicycle" name="transport" type="radio" value="bicycle" />
+            <span class="calc__transport-icon" aria-hidden="true">🚲</span>
+            <span class="calc__transport-label">Bicicleta</span>
+          </label>
+
+          <label class="calc__transport-item" for="transport-car">
+            <input class="calc__transport-input" id="transport-car" name="transport" type="radio" value="car" checked />
+            <span class="calc__transport-icon" aria-hidden="true">🚗</span>
+            <span class="calc__transport-label">Carro</span>
+          </label>
+
+          <label class="calc__transport-item" for="transport-bus">
+            <input class="calc__transport-input" id="transport-bus" name="transport" type="radio" value="bus" />
+            <span class="calc__transport-icon" aria-hidden="true">🚌</span>
+            <span class="calc__transport-label">Ônibus</span>
+          </label>
+
+          <label class="calc__transport-item" for="transport-truck">
+            <input class="calc__transport-input" id="transport-truck" name="transport" type="radio" value="truck" />
+            <span class="calc__transport-icon" aria-hidden="true">🚚</span>
+            <span class="calc__transport-label">Caminhão</span>
+          </label>
+        </div>
+      </fieldset>
+
+      <div class="calc__actions">
+        <button class="calc__button" type="submit">Calcular Emissão</button>
+      </div>
+    </form>
+
+    <section id="results" class="calc__results hidden" aria-hidden="true">
+      <h2 class="calc__results-title">Resultados</h2>
+      <div id="results-content" class="calc__results-content"></div>
+    </section>
+
+    <section id="comparison" class="calc__comparison hidden" aria-hidden="true">
+      <h2 class="calc__comparison-title">Comparação</h2>
+      <div id="comparison-content" class="calc__comparison-content"></div>
+    </section>
+
+    <section id="carbon-credits" class="calc__carbon-credits hidden" aria-hidden="true">
+      <h2 class="calc__carbon-credits-title">Créditos de Carbono</h2>
+      <div id="carbon-credits-content" class="calc__carbon-credits-content"></div>
+    </section>
+  </main>
+
+  <footer class="calc__footer">
+    <p class="calc__credits">Desenvolvido para a DIO | Projeto GitHub Copilot</p>
+  </footer>
+
+  <script src="js/routes-data.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/calculator.js"></script>
+  <script src="js/ui.js"></script>
+  // Ajustes visuais e acessibilidade para o grid de transporte
 document.addEventListener('DOMContentLoaded', () => {
-  const form = document.getElementById('calculator-form');
-  const originEl = document.getElementById('origin');
-  const destEl = document.getElementById('destination');
-  const distanceEl = document.getElementById('distance');
-  const manualCheckbox = document.getElementById('manual-distance');
+  const transportInputs = Array.from(document.querySelectorAll('.calc__transport-input'));
 
-  const resultsSection = document.getElementById('results');
-  const resultsContent = document.getElementById('results-content');
-  const comparisonSection = document.getElementById('comparison');
-  const comparisonContent = document.getElementById('comparison-content');
-  const creditsSection = document.getElementById('carbon-credits');
-  const creditsContent = document.getElementById('carbon-credits-content');
+  if (!transportInputs.length) return;
 
-  function showSection(section) {
-    section.classList.remove('hidden');
-    section.setAttribute('aria-hidden', 'false');
+  // Inicializa labels/estado com base no radio checked
+  function updateSelected() {
+    transportInputs.forEach(input => {
+      const label = input.closest('.calc__transport-item');
+      if (!label) return;
+      if (input.checked) {
+        label.classList.add('calc__transport-item--selected');
+        label.setAttribute('aria-checked', 'true');
+      } else {
+        label.classList.remove('calc__transport-item--selected');
+        label.setAttribute('aria-checked', 'false');
+      }
+    });
   }
 
-  function hideSection(section) {
-    section.classList.add('hidden');
-    section.setAttribute('aria-hidden', 'true');
+  // Remove focus class from all labels
+  function clearFocus() {
+    transportInputs.forEach(i => {
+      const lbl = i.closest('.calc__transport-item');
+      if (lbl) lbl.classList.remove('calc__transport-item--focus');
+    });
   }
 
-  function setDistanceFromRoutes() {
-    const orig = originEl.value.trim();
-    const dest = destEl.value.trim();
-    if (!orig || !dest) return null;
-    if (manualCheckbox.checked) return null;
-    const d = window.RoutesData && window.RoutesData.getDistance ? window.RoutesData.getDistance(orig, dest) : null;
-    if (d != null) {
-      distanceEl.value = d;
-      return d;
-    }
-    return null;
-  }
+  // Adiciona listeners
+  transportInputs.forEach(input => {
+    const label = input.closest('.calc__transport-item');
+    if (!label) return;
 
-  // toggle manual distance editing
-  manualCheckbox.addEventListener('change', () => {
-    if (manualCheckbox.checked) {
-      distanceEl.readOnly = false;
-      distanceEl.focus();
-    } else {
-      distanceEl.readOnly = true;
-      // try to auto-fill when disabling manual
-      setDistanceFromRoutes();
-    }
-  });
+    // Make the label behave like a radio for assistive tech
+    label.setAttribute('role', 'radio');
+    label.setAttribute('tabindex', '-1'); // input still receives focus
+    label.setAttribute('aria-checked', input.checked ? 'true' : 'false');
 
-  // try update distance when origin/destination change (debounced minimal)
-  let updateTimer = null;
-  [originEl, destEl].forEach(el => {
-    el.addEventListener('input', () => {
-      if (updateTimer) clearTimeout(updateTimer);
-      updateTimer = setTimeout(() => {
-        setDistanceFromRoutes();
-      }, 350);
+    // quando o input muda, atualiza seleção
+    input.addEventListener('change', () => {
+      updateSelected();
+    });
+
+    // foco via teclado: marca visualmente o label
+    input.addEventListener('focus', () => {
+      clearFocus();
+      label.classList.add('calc__transport-item--focus');
+    });
+
+    input.addEventListener('blur', () => {
+      label.classList.remove('calc__transport-item--focus');
+    });
+
+    // permite seleção via clique no label (já padrão), mas adiciona foco ao input
+    label.addEventListener('click', (e) => {
+      // garantir que o input receba foco e seja checked
+      if (!input.checked) {
+        input.checked = true;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      input.focus();
+    });
+
+    // suporte de teclado extra: teclas arrow para navegar entre opções
+    input.addEventListener('keydown', (e) => {
+      const radios = transportInputs;
+      const idx = radios.indexOf(input);
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        const next = radios[(idx + 1) % radios.length];
+        next.checked = true;
+        next.focus();
+        next.dispatchEvent(new Event('change', { bubbles: true }));
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prev = radios[(idx - 1 + radios.length) % radios.length];
+        prev.checked = true;
+        prev.focus();
+        prev.dispatchEvent(new Event('change', { bubbles: true }));
+      }
     });
   });
 
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    // determine distance
-    let distance = Number(distanceEl.value);
-    if (!manualCheckbox.checked) {
-      const d = setDistanceFromRoutes();
-      if (d != null) distance = Number(d);
-    }
-
-    if (!distance || distance <= 0 || isNaN(distance)) {
-      resultsContent.innerHTML = '<p>Não foi possível determinar a distância. Insira manualmente ou escolha locais conhecidos.</p>';
-      showSection(resultsSection);
-      hideSection(comparisonSection);
-      hideSection(creditsSection);
-      return;
-    }
-
-    // get selected transport
-    const transport = document.querySelector('input[name="transport"]:checked');
-    const mode = transport ? transport.value : 'car';
-
-    const kg = window.Calculator.calculateEmissionKg(distance, mode);
-    const formatted = window.Calculator.formatKg(kg);
-
-    // show results
-    resultsContent.innerHTML = `
-      <p><strong>Origem:</strong> ${escapeHtml(originEl.value || '—')}</p>
-      <p><strong>Destino:</strong> ${escapeHtml(destEl.value || '—')}</p>
-      <p><strong>Distância:</strong> ${distance.toFixed(1)} km</p>
-      <p><strong>Transporte:</strong> ${mode}</p>
-      <p><strong>Emissão estimada:</strong> ${formatted}</p>
-    `;
-    showSection(resultsSection);
-
-    // comparison: emissions for all modes
-    const factors = window.CO2_CONFIG && window.CO2_CONFIG.EMISSION_FACTORS ? window.CO2_CONFIG.EMISSION_FACTORS : {};
-    const comparisonHtml = Object.keys(factors).map(m => {
-      const val = window.Calculator.calculateEmissionKg(distance, m);
-      return `<li><strong>${m}</strong>: ${window.Calculator.formatKg(val)}</li>`;
-    }).join('');
-    comparisonContent.innerHTML = `<ul>${comparisonHtml}</ul>`;
-    showSection(comparisonSection);
-
-    // carbon credits: simple conversion: 1 credit = 1 ton CO2
-    const credits = kg / 1000; // tons
-    creditsContent.innerHTML = `
-      <p>Emissão total: <strong>${formatted}</strong></p>
-      <p>Créditos de carbono necessários (1 crédito = 1 tonelada CO₂): <strong>${credits.toFixed(3)} créditos</strong></p>
-    `;
-    showSection(creditsSection);
-  });
-
-  // small helper to avoid XSS when injecting user values
-  function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>"']/g, function (s) {
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s];
-    });
-  }
+  // estado inicial
+  updateSelected();
 });
-# 🍃 Calculadora de Emissão de CO₂
-
-Projeto simples em HTML/CSS/JS que calcula emissões aproximadas de CO₂ para um trajeto com base na distância e modo de transporte.
-
-Estrutura:
-- index.html
-- css/style.css
-- js/routes-data.js
-- js/config.js
-- js/calculator.js
-- js/ui.js
-- js/app.js
-
-Instruções para criar repositório local e enviar ao GitHub:
-
-1. Crie o repositório no GitHub (ex.: `calculadora-co2`) ou use o nome desejado.
-
-2. No terminal, dentro da pasta do projeto:
-```bash
-git init
-git add .
-git commit -m "Initial commit: CO2 calculator"
-git branch -M main
-# Substitua a URL abaixo pela URL do seu repositório no GitHub
-git remote add origin git@github.com:SEU_USUARIO/NOME_DO_REPO.git
-git push -u origin main
-```
-
-Se preferir HTTPS:
-```bash
-git remote add origin https://github.com/SEU_USUARIO/NOME_DO_REPO.git
-git push -u origin main
-```
-
-3. (Opcional) Habilitar GitHub Pages:
-- Vá em Settings > Pages, escolha a branch `main` e root (`/`) e salve.
-- O site ficará disponível em https://SEU_USUARIO.github.io/NOME_DO_REPO
-
-Notas:
-- `js/routes-data.js` usa dados locais (exemplos) para preencher o datalist e retornar distâncias aproximadas.
-- Ajuste `js/config.js` para trocar fatores de emissão por valores oficiais ou atualizados.
-- A interação visual dos modos de transporte está em `js/ui.js`.
-- As seções de resultados começam ocultas (.hidden) e são mostradas ao submeter o formulário.
+  <script src="js/app.js"></script>
+</body>
+</html>
